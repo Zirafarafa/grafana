@@ -115,7 +115,7 @@ function (angular, _, $, config, kbn, moment) {
       return date.format('HH:mm_YYYYMMDD');
     };
 
-    GraphiteDatasource.prototype.metricFindQuery = function(filterSrv, query) {
+    GraphiteDatasource.prototype.metricFindQuery = function(filterSrv, query, index) {
       var interpolated;
       try {
         interpolated = encodeURIComponent(filterSrv.applyTemplateToTarget(query));
@@ -124,12 +124,21 @@ function (angular, _, $, config, kbn, moment) {
         return $q.reject(err);
       }
 
-      return this.doGraphiteRequest({method: 'GET', url: '/metrics/find/?query=' + interpolated })
+      return this.doGraphiteRequest({method: 'GET', url: '/metrics/find/?format=completer&query=' + interpolated })
         .then(function(results) {
-          return _.map(results.data, function(metric) {
+          return _.map(results.data['metrics'], function(metric) {
+
+            var keys = metric.path.split(".")
+            if (typeof index == "undefined" || index == "") {
+              // Get the last valid index from the metric
+              index = keys.length-1; 
+              if (keys[index] == "") {
+                index--;
+              }
+            }
             return {
-              text: metric.text,
-              expandable: metric.expandable ? true : false
+              text: keys[index],
+              expandable: metric.is_leaf == 0 ? true : false
             };
           });
         });
