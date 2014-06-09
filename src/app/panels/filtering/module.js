@@ -62,7 +62,7 @@ function (angular, app, _) {
     };
 
     $scope.applyFilter = function(templateParam) {
-      return datasourceSrv.default.metricFindQuery($scope.filter, templateParam.query, templateParam.index)
+      return datasourceSrv.default.metricFindQuery($scope.filter, templateParam.query, templateParam.index, templateParam.regexp)
         .then(function (results) {
           templateParam.editing = undefined;
           templateParam.options = _.map(results, function(node) {
@@ -98,6 +98,7 @@ function (angular, app, _) {
         editing   : true,
         query     : 'metric.path.subpath.*',
         index     : '',
+        regexp    : '(.*)',
       });
     };
 

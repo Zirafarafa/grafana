@@ -115,7 +115,7 @@ function (angular, _, $, config, kbn, moment) {
       return date.format('HH:mm_YYYYMMDD');
     };
 
-    GraphiteDatasource.prototype.metricFindQuery = function(filterSrv, query, index) {
+    GraphiteDatasource.prototype.metricFindQuery = function(filterSrv, query, index, regexp) {
       var interpolated;
       try {
         interpolated = encodeURIComponent(filterSrv.applyTemplateToTarget(query));
@@ -126,21 +126,36 @@ function (angular, _, $, config, kbn, moment) {
 
       return this.doGraphiteRequest({method: 'GET', url: '/metrics/find/?format=completer&query=' + interpolated })
         .then(function(results) {
-          return _.map(results.data['metrics'], function(metric) {
+          var metrics =  _.map(results.data['metrics'], function(metric) {
 
             var keys = metric.path.split(".")
-            if (typeof index == "undefined" || index == "") {
+            if (_.isUndefined(index) || index == "") {
               // Get the last valid index from the metric
               index = keys.length-1; 
               if (keys[index] == "") {
                 index--;
               }
             }
+            var nodeText = keys[index]
+            if (typeof regexp != "undefined" && regexp != "") {
+              var matches = nodeText.match(regexp)
+              if (matches.length == 2) {
+                 nodeText = matches[1];
+              }
+            }
             return {
-              text: keys[index],
+              text: nodeText,
               expandable: metric.is_leaf == 0 ? true : false
             };
           });
+          var dedup = {};
+          metrics = _.filter(metrics, function(item) {
+            if (_.isUndefined(item)) return false;
+            if (item.text in dedup)  return false;
+            dedup[item.text] = true;
+            return true;
+          });
+          return metrics;
         });
     };
 
